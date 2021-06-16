@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 
 
 class FSP:
-    def __init__(self):
+    def __init__(self, n_jobs=None, n_machines=None):
         """
         Flow Shop Problem Instance.
 
@@ -18,11 +18,14 @@ class FSP:
             fsp_instance = FSP()
             makespan, job_info = fsp_instance.forward_schedule()
             fsp_instance.draw_gant_chart(job_machine_infos=job_info, method='default', C_max=makespan)
+
+        :param n_jobs: How many jobs are to be considered. Default None will use the info from processing data file.
+        :param n_machines: How many machines are to be considered. Default is the same as n_jobs.
         """
-        self.n_jobs = None
-        self.n_machines = None
         self.processing_time = []
         self.load_data()
+        self.n_jobs = n_jobs if n_jobs is not None else self.n_jobs
+        self.n_machines = n_machines if n_machines is not None else self.n_machines
 
     def load_data(self):
         """
@@ -66,7 +69,8 @@ class FSP:
                         job = buffers[i].pop(0)
                         machines_job[i] = job
                         machines_finishing_time[i] = clock + self.processing_time[job][i]
-                        job_machine_info.append((job, 'Machine {}'.format(i + 1), clock, self.processing_time[job][i]))
+                        job_machine_info.append(
+                            (job + 1, 'Machine {}'.format(i + 1), clock, self.processing_time[job][i]))
                     else:  # 如果没有要加工的任务，就把机器完成时间设定为-1，表示空闲，下次遍历时会处理
                         machines_finishing_time[i] = -1
             all_finishing_time = set(machines_finishing_time)
@@ -79,7 +83,7 @@ class FSP:
         return clock, job_machine_info
 
     @staticmethod
-    def draw_gant_chart(job_machine_infos=None, ax=None, method=None, C_max=None, dpi=300):
+    def draw_gant_chart(job_machine_infos=None, ax=None, method=None, C_max=None, dpi=300, description=None):
         """
         Draw gant chart.
 
@@ -88,6 +92,7 @@ class FSP:
         :param method: algorithm name
         :param C_max: makespan
         :param dpi: optional, parameter for saving the pic
+        :param description: more info append below the title
         :return: None
         """
         machines_name = list(set([job_machine_info[1] for job_machine_info in job_machine_infos]))
@@ -106,17 +111,22 @@ class FSP:
         ax.set_xlabel('Time')
         ax.set_ylabel('Machine')
 
-        title = 'Method {} - makespan {}'.format(method, C_max)
+        title = 'Method {} - makespan {:.0f}'.format(method, C_max)
+        if description is not None:
+            title = title + '\n{}'.format(description)
         ax.set_title(title)
         plt.tight_layout()
         save_path = '01_Pics/{}/'.format(method)
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-        plt.savefig(save_path + title + '.png', dpi=dpi)
+        plt.savefig(save_path + title.replace('\n', ' - ') + '.png', dpi=dpi)
         plt.close()
 
 
 if __name__ == '__main__':
-    fsp_instance = FSP()
-    makespan, job_info = fsp_instance.forward_schedule()
-    fsp_instance.draw_gant_chart(job_machine_infos=job_info, method='default', C_max=makespan)
+    jobs = 10
+    machines = 8
+    fsp = FSP(n_jobs=jobs, n_machines=machines)
+    makespan, job_info = fsp.forward_schedule()
+    fsp.draw_gant_chart(job_machine_infos=job_info, method='default', C_max=makespan,
+                        description='n_jobs {} - n_machines {}'.format(fsp.n_jobs, fsp.n_machines))
