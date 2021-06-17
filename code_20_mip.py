@@ -11,27 +11,26 @@ from code_10_fsp import FSP
 
 
 class MIP:
-    def __init__(self, instance: FSP, time_limit=600):
+    def __init__(self, instance: FSP):
         """
         MIP model.
 
         :param instance: FSP instance
-        :param time_limit: time limit for Gurobi model solving
         """
         self.instance = instance
         self.n_jobs = instance.n_jobs
         self.n_machines = instance.n_machines
         self.p = instance.processing_time
-        self.time_limit = time_limit
         self.obj_val = None
         self.model_build_time = None
         self.model_solve_time = None
         self.job_infos = []
 
-    def solve(self):
+    def solve(self, time_limit=None):
         """
         solve the gurobi model.
 
+        :param time_limit: time limit for Gurobi model solving
         :return: None
         """
         Q = 10000.0  # a very large number
@@ -91,7 +90,8 @@ class MIP:
 
             # solve the model
             start_time = time.time()
-            m.setParam('TimeLimit', self.time_limit)
+            if time_limit is not None:
+                m.setParam('TimeLimit', time_limit)
             m.optimize()
             model_solving_time = time.time() - start_time
 
@@ -122,7 +122,7 @@ class MIP:
 
 
 if __name__ == '__main__':
-    fsp = FSP(n_jobs=12, n_machines=8)
+    fsp = FSP(n_jobs=13, n_machines=8)
     mip_model = MIP(fsp)
-    mip_model.solve()
+    mip_model.solve(time_limit=600)
     mip_model.save_gantt_chart()
