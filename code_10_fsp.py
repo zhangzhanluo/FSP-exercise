@@ -6,6 +6,7 @@
     Description: Create Flow Shop Problem Instance
 """
 import os
+import random
 from matplotlib import pyplot as plt
 
 
@@ -24,8 +25,9 @@ class FSP:
         """
         self.processing_time = []
         self.load_data()
-        self.n_jobs = n_jobs if n_jobs is not None else self.n_jobs
+        self.n_total_jobs = n_jobs if n_jobs is not None else self.n_total_jobs
         self.n_machines = n_machines if n_machines is not None else self.n_machines
+        self.three_of_six = [3, 5, 7, 9, 11, 14]
 
     def load_data(self):
         """
@@ -40,8 +42,21 @@ class FSP:
                 line = line.strip('\n')
                 line = line.split(',')[1:]
                 self.processing_time.append([int(x) for x in line])
-        self.n_jobs = len(self.processing_time)
+        self.n_total_jobs = len(self.processing_time)
         self.n_machines = len(self.processing_time[0])
+
+    def solution_validate(self, sequence):
+        solution = set(sequence)
+        return len(solution.intersection(set(self.three_of_six))) >= 3
+
+    def generate_random_solution(self, random_seed=None):
+        must_jobs = set(range(1, self.n_total_jobs + 1)).difference(set(self.three_of_six))
+        random.seed(random_seed)
+        a_solution = must_jobs.union(set(random.choices(self.three_of_six, k=3)))
+        a_solution = list(a_solution)
+        random.shuffle(a_solution)
+        random.seed(None)
+        return a_solution
 
     def forward_schedule(self, sequence=None):
         """
@@ -51,10 +66,10 @@ class FSP:
         :return: makespan and job scheduling information for gantt chart
         """
         if sequence is None:
-            sequence = list(range(self.n_jobs))
+            sequence = list(range(1, self.n_total_jobs + 1))
         machines_finishing_time = [-1 for _ in range(self.n_machines)]
         machines_job = [-1 for _ in range(self.n_machines)]
-        buffers = [[] for _ in range(self.n_jobs + 1)]
+        buffers = [[] for _ in range(self.n_machines + 1)]
         buffers[0] = sequence.copy()
         clock = 0
         job_machine_info = []
@@ -68,9 +83,9 @@ class FSP:
                     if len(buffers[i]) > 0:  # 如果该机器的buffer有任务要加工，就开始加工下一个任务
                         job = buffers[i].pop(0)
                         machines_job[i] = job
-                        machines_finishing_time[i] = clock + self.processing_time[job][i]
+                        machines_finishing_time[i] = clock + self.processing_time[job - 1][i]
                         job_machine_info.append(
-                            (job + 1, 'Machine {}'.format(i + 1), clock, self.processing_time[job][i]))
+                            (job, 'Machine {}'.format(i + 1), clock, self.processing_time[job - 1][i]))
                     else:  # 如果没有要加工的任务，就把机器完成时间设定为-1，表示空闲，下次遍历时会处理
                         machines_finishing_time[i] = -1
             all_finishing_time = set(machines_finishing_time)
@@ -98,7 +113,7 @@ class FSP:
         machines_name = list(set([job_machine_info[1] for job_machine_info in job_machine_infos]))
         machines_name.sort()
         if ax is None:
-            plt.figure(figsize=(20, 5))
+            plt.figure(figsize=(len(set([x[0] for x in job_machine_infos])) + 2, 5))
             ax = plt.gca()
         for block in job_machine_infos:
             y = machines_name.index(block[1])
@@ -129,4 +144,13 @@ if __name__ == '__main__':
     fsp = FSP(n_jobs=jobs, n_machines=machines)
     makespan, job_info = fsp.forward_schedule()
     fsp.draw_gant_chart(job_machine_infos=job_info, method='default', C_max=makespan,
-                        description='n_jobs {} - n_machines {}'.format(fsp.n_jobs, fsp.n_machines))
+                        description='n_jobs {} - n_machines {}'.format(fsp.n_total_jobs, fsp.n_machines))
+    fsp_all = FSP()
+    seed = 1
+    random_sequence = fsp_all.generate_random_solution(random_seed=seed)
+    makespan, job_info = fsp_all.forward_schedule(random_sequence)
+    fsp_all.draw_gant_chart(job_machine_infos=job_info, method='random', C_max=makespan,
+                            description='n_jobs {} - n_machines {} - random_seed {}'.format(
+                                len(set([x[0] for x in job_info])),
+                                len(set([x[1] for x in job_info])),
+                                seed))
