@@ -18,7 +18,7 @@ class MIP:
         :param instance: FSP instance
         """
         self.instance = instance
-        self.n_jobs = instance.n_jobs
+        self.n_jobs = instance.n_total_jobs
         self.n_machines = instance.n_machines
         self.p = instance.processing_time
         self.obj_val = None
