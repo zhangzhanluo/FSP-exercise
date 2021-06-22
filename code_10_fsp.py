@@ -45,28 +45,34 @@ class FSP:
         self.n_total_jobs = len(self.processing_time)
         self.n_machines = len(self.processing_time[0])
 
-    def solution_validate(self, sequence):
-        solution = set(sequence)
-        return len(solution.intersection(set(self.three_of_six))) >= 3
-
     def generate_random_solution(self, random_seed=None):
-        must_jobs = set(range(1, self.n_total_jobs + 1)).difference(set(self.three_of_six))
         random.seed(random_seed)
-        a_solution = must_jobs.union(set(random.choices(self.three_of_six, k=3)))
-        a_solution = list(a_solution)
+        a_solution = list(range(1, self.n_total_jobs + 1))
         random.shuffle(a_solution)
         random.seed(None)
         return a_solution
 
-    def forward_schedule(self, sequence=None):
+    def drop_free_jobs(self, sequence):
+        special_jobs = [(x, sequence.index(x)) for x in self.three_of_six if x in sequence]
+        special_jobs.sort(key=lambda x: x[1])
+
+        for free_job in special_jobs[3:]:
+            sequence.remove(free_job[0])
+        return sequence
+
+    def forward_schedule(self, sequence=None, drop_free_jobs=True):
         """
         Unlimited buffers. More details can be get from README.md.
 
-        :param sequence: solution
+        :param sequence: solution.
+        :param drop_free_jobs: if True, the solution will be modified to keep only 3 special jobs for scheduling.
         :return: makespan and job scheduling information for gantt chart
         """
         if sequence is None:
             sequence = list(range(1, self.n_total_jobs + 1))
+        else:
+            if drop_free_jobs:
+                sequence = self.drop_free_jobs(sequence)
         machines_finishing_time = [-1 for _ in range(self.n_machines)]
         machines_job = [-1 for _ in range(self.n_machines)]
         buffers = [[] for _ in range(self.n_machines + 1)]
@@ -131,7 +137,7 @@ class FSP:
             title = title + '\n{}'.format(description)
         ax.set_title(title)
         plt.tight_layout()
-        save_path = '01_Pics/{}/'.format(method)
+        save_path = '01_Gantt_Chart/{}/'.format(method)
         if not os.path.exists(save_path):
             os.makedirs(save_path)
         plt.savefig(save_path + title.replace('\n', ' - ') + '.png', dpi=dpi)
@@ -146,7 +152,7 @@ if __name__ == '__main__':
     fsp.draw_gant_chart(job_machine_infos=job_info, method='default', C_max=makespan,
                         description='n_jobs {} - n_machines {}'.format(fsp.n_total_jobs, fsp.n_machines))
     fsp_all = FSP()
-    seed = 1
+    seed = 0
     random_sequence = fsp_all.generate_random_solution(random_seed=seed)
     makespan, job_info = fsp_all.forward_schedule(random_sequence)
     fsp_all.draw_gant_chart(job_machine_infos=job_info, method='random', C_max=makespan,
