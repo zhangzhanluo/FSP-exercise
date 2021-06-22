@@ -54,16 +54,14 @@ class GreedyAlgorithms:
         if guiding_solution is None:
             guiding_solution = self.sort_the_jobs()
         current_sequence = [guiding_solution[0]]
-        three_of_six_count = 0
-        if current_sequence in self.instance.three_of_six:
-            three_of_six_count += 1
         for i in range(1, len(guiding_solution)):
-            if guiding_solution[i] in self.instance.three_of_six:
-                three_of_six_count += 1
-                if three_of_six_count > 3:
-                    continue
             current_sequence = self.NEH_insertion(current_sequence, guiding_solution[i])
         return current_sequence
+
+    def reversed_NEH_heuristic(self):
+        decrease_solution = self.sort_the_jobs()
+        increase_solution = decrease_solution[::-1]
+        return self.NEH_heuristic(increase_solution)
 
 
 if __name__ == '__main__':
@@ -75,3 +73,11 @@ if __name__ == '__main__':
                         description='n_jobs {} - n_machines {}'.format(
                             len(set([x[0] for x in job_info])),
                             len(set([x[1] for x in job_info]))))
+    print('Makespan:', makespan, ';\tSolution:', fsp.drop_free_jobs(neh_sequence))
+    reversed_neh_sequence = greedy_solver.reversed_NEH_heuristic()
+    makespan, job_info = fsp.forward_schedule(reversed_neh_sequence)
+    fsp.draw_gant_chart(job_machine_infos=job_info, method='Reversed NEH', C_max=makespan,
+                        description='n_jobs {} - n_machines {}'.format(
+                            len(set([x[0] for x in job_info])),
+                            len(set([x[1] for x in job_info]))))
+    print('Makespan:', makespan, ';\tSolution:', fsp.drop_free_jobs(reversed_neh_sequence))
