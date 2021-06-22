@@ -33,7 +33,7 @@ plt.ylabel('Model Solving Time (s)', fontsize=font_size_medium)
 plt.xticks(range(len(solving_times[0])), range(1, len(solving_times[0]) + 1), fontsize=font_size_small)
 plt.yticks(fontsize=font_size_small)
 plt.legend(lines, ['Number of Machine(s): {}'.format(i) for i in machines], fontsize=font_size_small)
-title = 'Solving Time of MIP Experiments'
+title = 'Solving Time of MIP Models'
 plt.title(title, fontsize=font_size_large)
 plt.tight_layout()
 plt.savefig('02_Results/MIP/{}.png'.format(title), dpi=300)
@@ -72,7 +72,7 @@ plt.ylabel('Model Solving Time (s)', fontsize=font_size_medium)
 plt.xticks(range(len(solving_times[0])+1), range(1, len(solving_times[0]) + 2), fontsize=font_size_small)
 plt.yticks(fontsize=font_size_small)
 plt.legend(fontsize=font_size_small - 1)
-title = 'Solving Time of MIP Experiments (8 Machines)'
+title = 'Solving Time of MIP Models (8 Machines)'
 plt.title(title, fontsize=font_size_large)
 plt.tight_layout()
 plt.savefig('02_Results/MIP/{}.png'.format(title), dpi=300)
