@@ -105,11 +105,76 @@ The reversed NEH heuristic works worse than the original NEH algorithm. This ind
 
 > See [code_30_greedy_algorithms.py](code_30_greedy_algorithms.py)
 
+### Genetic Algorithm
+
+#### Basic Algorithm
+
+Genetic algorithm is employed to solve this FSP. Some general setting are:
+
+| Parameter            | Value                                                  |
+| -------------------- | ------------------------------------------------------ |
+| Number of Generation | 100                                                    |
+| Population Size      | 50                                                     |
+| Crossover Rate       | 0.8                                                    |
+| Mutation Rate        | 0.003                                                  |
+| Selection Method     | Championship or Roulette Wheel                         |
+| Crossover Method     | Partial-Mapped Crossover (PMX) or Order Crossover (OX) |
+
+More details about the mentioned selection method and crossover method can be referenced in [this article](https://blog.csdn.net/u012750702/article/details/54563515) (in Chinese). Elite strategy is employed to make sure the the population will at least not be worse than the former ones.
+
+The difference between the selection methods and crossover method is analyzed. Using Championship selection method and PMX crossover method, the revolution goes like this:
+
+<div align=center><img width="1200" src="02_Results\GA\GA_Revolution_with_Championship_Selection_PMX_Crossover_False_Good_Start.png"/></div>
+
+Championship selection method and OX crossover method:
+
+<div align=center><img width="1200" src="02_Results\GA\GA_Revolution_with_Championship_Selection_OX_Crossover_False_Good_Start.png"/></div>
+
+Roulette Wheel selection method and PMX crossover method:
+
+<div align=center><img width="1200" src="02_Results\GA\GA_Revolution_with_Roulette_Wheel_Selection_PMX_Crossover_False_Good_Start.png"/></div>
+
+Roulette Wheel selection method and OX crossover method:
+
+<div align=center><img width="1200" src="02_Results\GA\GA_Revolution_with_Roulette_Wheel_Selection_OX_Crossover_False_Good_Start.png"/></div>
+
+In summary:
+
+|                | PMX                                     | OX                                                        |
+| -------------- | --------------------------------------- | --------------------------------------------------------- |
+| Champion       | Best makespan: 503<br />Quick decrease  | Best makespan: 503<br />Fluctuation and unsteady decrease |
+| Roulette Wheel | Best makespan: 484<br />Smooth decrease | Best makespan: 508<br />Fluctuation and unsteady decrease |
+
+As we can see from the above table, the PMX method outperforms the OX method in terms of both the final best makespan and the revolution process for this FSP problem. 
+
+#### Good Start
+
+Since we already have a good solution by greedy algorithm. A very straight forward idea is to add the solution given by the greedy algorithm to the initial population. After adding the solution found by greedy algorithm, the results are:
+
+|                | PMX                                     | OX                                                        |
+| -------------- | --------------------------------------- | --------------------------------------------------------- |
+| Champion       | Best makespan: 477<br />Quick decrease  | Best makespan: 477<br />Fluctuation and unsteady decrease |
+| Roulette Wheel | Best makespan: 474<br />Smooth decrease | Best makespan: 477<br />Fluctuation and unsteady decrease |
+
+As can be seen in the above table, only the combination of Roulette Wheel selection and PMX produces a slightly better result. The revolution process is:
+
+<div align=center><img width="1200" src="02_Results\GA\GA_Revolution_with_Roulette_Wheel_Selection_PMX_Crossover_True_Good_Start.png"/></div>
+
+ The new best solution is [17, 21, 15, 2, 28, 25, 13, 12, 1, 14, 19, 8, 24, 26, 6, 7, 5, 4, 27, 10, 23, 18, 20, 16, 22]. The corresponding makespan is **474s**. The corresponding Gantt Chart is:
+
+<div align=center><img width="1200" src="01_Gantt_chart\GA\Method_GA_+_makespan_474+PMX_Roulette_Wheel_Good_Start.png"/></div>
+
+> see [code_40_ga.py](code_40_ga.py)
+
 ### Conclusion
 
-The best solution is  [17, 2, 15, 21, 28, 25, 13, 12, 1, 14, 19, 11, 24, 26, 6, 7, 4, 27, 10, 23, 8, 18, 20, 16, 22]. The makespan for the best solution is **477s**. The Gantt Chart for the best solution is as follows:
+The best solution is [17, 21, 15, 2, 28, 25, 13, 12, 1, 14, 19, 8, 24, 26, 6, 7, 5, 4, 27, 10, 23, 18, 20, 16, 22]. The makespan for the best solution is **474s**. The Gantt Chart for the best solution is as follows:
 
-<div align=center><img width="1200" src=".\01_Gantt_Chart\NEH\Method%20NEH%20-%20makespan%20477%20-%20n_jobs%2025%20-%20n_machines%208.png"/></div>
+<div align=center><img width="1200" src="01_Gantt_chart\GA\Method_GA_+_makespan_474+PMX_Roulette_Wheel_Good_Start.png"/></div>
+
+### Acknowledge
+
+The author thanks [Assoc. Prof. Liu](https://me.sjtu.edu.cn/teacher_directory1/liuran.html) for his teaching in the class.
 
 ### Reference
 

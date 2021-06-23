@@ -10,6 +10,7 @@ import time
 import random
 from matplotlib import pyplot as plt
 from code_10_fsp import FSP
+from code_30_greedy_algorithms import GreedyAlgorithms
 
 
 class GA:
@@ -25,7 +26,7 @@ class GA:
     """
 
     def __init__(self, instance: FSP, population_size=100, crossover_rate=0.8, mutation_rate=0.003, n_generations=100,
-                 selection_method='championship', crossover_method='PMX', random_seed=None):
+                 selection_method='championship', crossover_method='PMX', random_seed=None, good_start=False):
         self.fsp = instance
         self.dna_size = instance.n_total_jobs
         self.pop_size = population_size
@@ -37,6 +38,7 @@ class GA:
         self.selection_method = selection_method
         self.crossover_method = crossover_method
         self.random_seed = random_seed
+        self.good_start = good_start
         self.pic_path = '02_Results/GA/'
         for path in [self.pic_path]:
             if not os.path.exists(path):
@@ -91,6 +93,15 @@ class GA:
             child[mutate_point_1], child[mutate_point_2] = child[mutate_point_2], child[mutate_point_1]
         return child
 
+    @staticmethod
+    def pmx(mother_middle_part, father_middle_part, x):
+        while x in mother_middle_part:
+            x = father_middle_part[mother_middle_part.index(x)]
+        return x
+
+    def educate(self, child):  # todo: finish this
+        pass
+
     def crossover_and_mutation(self, pop):
         new_pop = []
         for father in pop:  # 遍历种群中的每一个个体，将该个体作为父亲
@@ -103,11 +114,11 @@ class GA:
                 father_middle_part = father[cross_points[0]:cross_points[1]]
                 if self.crossover_method == 'PMX':
                     child_part_1 = [
-                        x if x not in mother_middle_part else father_middle_part[mother_middle_part.index(x)] for x in
-                        father[:cross_points[0]]]
+                        x if x not in mother_middle_part else self.pmx(mother_middle_part, father_middle_part, x)
+                        for x in father[:cross_points[0]]]
                     child_part_3 = [
-                        x if x not in mother_middle_part else father_middle_part[mother_middle_part.index(x)] for x in
-                        father[cross_points[1]:]]
+                        x if x not in mother_middle_part else self.pmx(mother_middle_part, father_middle_part, x)
+                        for x in father[cross_points[1]:]]
                     child = child_part_1 + mother_middle_part + child_part_3
                 elif self.crossover_method == 'OX':
                     mother_reorder = mother[cross_points[1]:] + mother[:cross_points[1]]
@@ -126,6 +137,9 @@ class GA:
         pop_records = []
         # 初始化种群
         pop = self.initial_pop()
+        if self.good_start:
+            greedy_algorithm_solver = GreedyAlgorithms(self.fsp)
+            pop[0] = greedy_algorithm_solver.NEH_heuristic().copy()
         fit = self.get_fitness(pop)
         self.best_individual = pop[fit.index(min(fit))].copy()
         self.best_makespan = min(fit)
@@ -158,29 +172,42 @@ class GA:
         plt.boxplot(fitness_records, labels=range(generation_range[0], generation_range[1]))
         plt.xlabel('Generation')
         plt.ylabel('Makespans')
-        title = 'GA Revolution with {} Selection Method {} Crossover Method'.format(self.selection_method,
-                                                                                    self.crossover_method)
+        title = 'GA Revolution with {} Selection {} Crossover {} Good Start'.format(self.selection_method,
+                                                                                    self.crossover_method,
+                                                                                    str(self.good_start))
         plt.title(title)
         plt.xticks(range(0, len(fitness_records), 5), range(0, len(fitness_records), 5))
         plt.text(plt.gca().get_xlim()[-1] * 0.99, plt.gca().get_ylim()[-1] * 0.99,
-'DNA Size: {}\nPopulation Size: {}\nCrossover Rate: {}\nMutation Rate: {}\nRandom Seed: {}\n\nBest Makespan: {}'.format(
-         self.dna_size, self.pop_size, self.crossover_rate, self.mutation_rate, self.random_seed, self.best_makespan
+                 'DNA Size: {}\n'
+                 'Population Size: {}\n'
+                 'Crossover Rate: {}\n'
+                 'Mutation Rate: {}\n'
+                 'Random Seed: {}\n\n'
+                 'Best Makespan: {}'.format(
+                     self.dna_size,
+                     self.pop_size,
+                     self.crossover_rate,
+                     self.mutation_rate,
+                     self.random_seed,
+                     self.best_makespan
                  ), ha='right', va='top')
         plt.tight_layout()
-        title.replace(' ', '_')
-        plt.savefig(self.pic_path + '{}.png'.format(title), dpi=150)
+        title = title.replace(' ', '_')
+        plt.savefig(self.pic_path + '{}.png'.format(title), dpi=300)
 
 
 if __name__ == '__main__':
     fsp = FSP()
     for crossover in ['OX', 'PMX']:
         for selection in ['Championship', 'Roulette Wheel']:
-            ga_solver = GA(instance=fsp, population_size=50, crossover_method=crossover, selection_method=selection,
-                           random_seed=1)
-            pop_history = ga_solver.revolution()
-            ga_solver.plot_evolution(pop_history)
+            for good_start in [True, False]:
+                ga_solver = GA(instance=fsp, population_size=50, crossover_method=crossover, selection_method=selection,
+                               random_seed=1, good_start=good_start)
+                pop_history = ga_solver.revolution()
+                ga_solver.plot_evolution(pop_history)
     ga_solver = GA(instance=fsp, population_size=50, crossover_method='PMX', selection_method='Roulette Wheel',
-                   random_seed=1)
-    pop_history = ga_solver.revolution()
+                   random_seed=1, good_start=True)
+    _ = ga_solver.revolution()
     _, job_info = fsp.forward_schedule(ga_solver.best_individual)
-    fsp.draw_gant_chart(job_info, method='GA', C_max=ga_solver.best_makespan, description='PMX_Roulette_Wheel')
+    fsp.draw_gant_chart(job_info, method='GA', C_max=ga_solver.best_makespan,
+                        description='PMX_Roulette_Wheel_Good_Start')
