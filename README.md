@@ -122,7 +122,7 @@ Genetic algorithm is employed to solve this FSP. Some general setting are:
 
 More details about the mentioned selection method and crossover method can be referenced in [this article](https://blog.csdn.net/u012750702/article/details/54563515) (in Chinese). Elite strategy is employed to make sure the the population will at least not be worse than the former ones.
 
-The difference between the selection methods and crossover method is analyzed. Using Championship selection method and PMX crossover method, the revolution goes like this:
+The difference between the selection methods and crossover methods is analyzed. Using Championship selection method and PMX crossover method, the revolution goes like this:
 
 <div align=center><img width="1200" src="02_Results\GA\GA_Revolution_with_Championship_Selection_PMX_Crossover_False_Good_Start.png"/></div>
 
@@ -164,13 +164,46 @@ As can be seen in the above table, only the combination of Roulette Wheel select
 
 <div align=center><img width="1200" src="01_Gantt_chart\GA\Method_GA_+_makespan_474+PMX_Roulette_Wheel_Good_Start.png"/></div>
 
+#### Education
+
+Another import concept for genetic algorithm is Education. In this problem, a very simple education strategy is to swap all the pairs in a solution and see whether a new solution can be get. To avoid too much calculation, the ones whose makespan is no 10s larger than the best solution can get the chance to be educated. A list called school is created to record the history of educated solution. If a solution is in school already, it will not be educated again. With education strategy, the results now are:
+
+|                | PMX                                                      | OX                                                       |
+| -------------- | -------------------------------------------------------- | -------------------------------------------------------- |
+| Champion       | Best makespan: 459<br />Best result from 28th generation | Best makespan: 459<br />Best result from 58th generation |
+| Roulette Wheel | Best makespan: 459<br />Best result from 20th generation | Best makespan: 461<br />Best result from 28th generation |
+
+New best solutions are get from the combinations of Champion + PMX, Champion + OX, and Roulette Wheel + PMX. Among all the combinations, Roulette Wheel + PMX has the fastest decreasing rate, which is showed in the following figure:
+
+<div align=center><img width="1200" src="02_Results\GA\GA_Revolution_with_Roulette_Wheel_Selection_PMX_Crossover_True_Good_Start_True_Education.png"/></div>
+
+Although three combinations give the same best makespan, their final solutions are different. The solutions are:
+
+| Combination          | Solution                                                     |
+| -------------------- | ------------------------------------------------------------ |
+| Champion + PMX       | [21, 24, 1, 17, 28, 6, 13, 4, 15, 14, 19, 8, 7, 26, 25, 2, 5, 12, 27, 3, 9, 10, 23, 11, 18, 20, 16, 22] |
+| Champion + OX        | [21, 24, 17, 5, 15, 28, 13, 12, 1, 14, 19, 8, 7, 26, 25, 2, 6, 4, 27, 3, 9, 10, 23, 11, 18, 20, 16, 22] |
+| Roulette Wheel + PMX | [21, 24, 5, 1, 28, 15, 13, 12, 17, 14, 19, 8, 7, 26, 25, 2, 6, 4, 27, 3, 9, 10, 23, 11, 18, 20, 16, 22] |
+
+The Gantt Chart for the Roulette Wheel + PMX solution is:
+
+<div align=center><img width="1200" src="01_Gantt_Chart\GA\Method_GA_+_makespan_459+PMX_Roulette_Wheel_Good_Start_Education.png"/></div>
+
 > see [code_40_ga.py](code_40_ga.py)
 
 ### Conclusion
 
-The best solution is [17, 21, 15, 2, 28, 25, 13, 12, 1, 14, 19, 8, 24, 26, 6, 7, 5, 4, 27, 10, 23, 18, 20, 16, 22]. The makespan for the best solution is **474s**. The Gantt Chart for the best solution is as follows:
+| Combination                                     | Makespan | Solution                                                     |
+| ----------------------------------------------- | -------- | ------------------------------------------------------------ |
+| Random                                          | 609.4    | None                                                         |
+| Greedy Algorithm                                | 477      | [17, 2, 15, 21, 28, 25, 13, 12, 1, 14, 19, 11, 24, 26, 6, 7, 4, 27, 10, 23, 8, 18, 20, 16, 22] |
+| Genetic Algorithm                               | 484      | [21, 6, 2, 1, 17, 28, 24, 19, 16, 10, 8, 26, 13, 5, 7, 15, 4, 25, 3, 18, 12, 23, 9, 11, 14, 22, 27, 20] |
+| Genetic Algorithm +Greedy Algorithm             | 474      | [17, 21, 15, 2, 28, 25, 13, 12, 1, 14, 19, 8, 24, 26, 6, 7, 5, 4, 27, 10, 23, 18, 20, 16, 22] |
+| Genetic Algorithm +Greedy Algorithm + Education | 459      | [21, 24, 1, 17, 28, 6, 13, 4, 15, 14, 19, 8, 7, 26, 25, 2, 5, 12, 27, 3, 9, 10, 23, 11, 18, 20, 16, 22]<br />[21, 24, 17, 5, 15, 28, 13, 12, 1, 14, 19, 8, 7, 26, 25, 2, 6, 4, 27, 3, 9, 10, 23, 11, 18, 20, 16, 22]<br />[21, 24, 5, 1, 28, 15, 13, 12, 17, 14, 19, 8, 7, 26, 25, 2, 6, 4, 27, 3, 9, 10, 23, 11, 18, 20, 16, 22] |
 
-<div align=center><img width="1200" src="01_Gantt_chart\GA\Method_GA_+_makespan_474+PMX_Roulette_Wheel_Good_Start.png"/></div>
+The best solution is [21, 24, 5, 1, 28, 15, 13, 12, 17, 14, 19, 8, 7, 26, 25, 2, 6, 4, 27, 3, 9, 10, 23, 11, 18, 20, 16, 22]. The makespan for the best solution is **459s**. The Gantt Chart for the best solution is as follows:
+
+<div align=center><img width="1200" src="01_Gantt_Chart\GA\Method_GA_+_makespan_459+PMX_Roulette_Wheel_Good_Start.png"/></div>
 
 ### Acknowledge
 
@@ -178,4 +211,4 @@ The author thanks [Assoc. Prof. Liu](https://me.sjtu.edu.cn/teacher_directory1/l
 
 ### Reference
 
-1. Öztop H, Tasgetiren M F, Eliiyi D T, et al. Metaheuristic algorithms for the hybrid flowshop scheduling problem[J]. Computers & Operations Research, 2019, 111: 177-196.
+Öztop H, Tasgetiren M F, Eliiyi D T, et al. Metaheuristic algorithms for the hybrid flowshop scheduling problem[J]. Computers & Operations Research, 2019, 111: 177-196.

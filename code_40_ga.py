@@ -26,7 +26,8 @@ class GA:
     """
 
     def __init__(self, instance: FSP, population_size=100, crossover_rate=0.8, mutation_rate=0.003, n_generations=100,
-                 selection_method='championship', crossover_method='PMX', random_seed=None, good_start=False):
+                 selection_method='championship', crossover_method='PMX', random_seed=None, good_start=False,
+                 education=False):
         self.fsp = instance
         self.dna_size = instance.n_total_jobs
         self.pop_size = population_size
@@ -38,7 +39,9 @@ class GA:
         self.selection_method = selection_method
         self.crossover_method = crossover_method
         self.random_seed = random_seed
+        self.school = []
         self.good_start = good_start
+        self.education = education
         self.pic_path = '02_Results/GA/'
         for path in [self.pic_path]:
             if not os.path.exists(path):
@@ -99,8 +102,18 @@ class GA:
             x = father_middle_part[mother_middle_part.index(x)]
         return x
 
-    def educate(self, child):  # todo: finish this
-        pass
+    def educate(self, child):
+        child_makespan, _ = self.fsp.forward_schedule(child.copy())
+        if child_makespan - self.best_makespan < 10 and child not in self.school:
+            self.school.append(child.copy())
+            for i in range(self.dna_size):
+                for j in range(i, self.dna_size):
+                    educated_child = child.copy()
+                    educated_child[i], educated_child[j] = child[j], child[i]
+                    educated_makespan, _ = self.fsp.forward_schedule(educated_child.copy())
+                    if educated_makespan < child_makespan:
+                        return educated_child
+        return child
 
     def crossover_and_mutation(self, pop):
         new_pop = []
@@ -129,6 +142,8 @@ class GA:
                 else:
                     raise NameError('No {} crossover method defined!'.format(self.crossover_method))
             child = self.mutation(child)  # 每个后代有一定的机率发生变异
+            if self.education:
+                child = self.educate(child)
             new_pop.append(child)
         return new_pop
 
@@ -172,9 +187,10 @@ class GA:
         plt.boxplot(fitness_records, labels=range(generation_range[0], generation_range[1]))
         plt.xlabel('Generation')
         plt.ylabel('Makespans')
-        title = 'GA Revolution with {} Selection {} Crossover {} Good Start'.format(self.selection_method,
-                                                                                    self.crossover_method,
-                                                                                    str(self.good_start))
+        title = 'GA Revolution with {} Selection {} Crossover {} Good Start {} Education'.format(self.selection_method,
+                                                                                                 self.crossover_method,
+                                                                                                 str(self.good_start),
+                                                                                                 str(self.education))
         plt.title(title)
         plt.xticks(range(0, len(fitness_records), 5), range(0, len(fitness_records), 5))
         plt.text(plt.gca().get_xlim()[-1] * 0.99, plt.gca().get_ylim()[-1] * 0.99,
@@ -198,16 +214,24 @@ class GA:
 
 if __name__ == '__main__':
     fsp = FSP()
+    ga_solver = GA(instance=fsp, population_size=50, crossover_method='PMX', selection_method='Roulette Wheel',
+                   random_seed=1, good_start=False, education=False)
+    _ = ga_solver.revolution()
+    print(ga_solver.best_makespan, ga_solver.best_individual)
     for crossover in ['OX', 'PMX']:
         for selection in ['Championship', 'Roulette Wheel']:
-            for good_start in [True, False]:
-                ga_solver = GA(instance=fsp, population_size=50, crossover_method=crossover, selection_method=selection,
-                               random_seed=1, good_start=good_start)
-                pop_history = ga_solver.revolution()
-                ga_solver.plot_evolution(pop_history)
+            for good_start in [True]:
+                for edu in [True]:
+                    ga_solver = GA(instance=fsp, population_size=50, crossover_method=crossover,
+                                   selection_method=selection, random_seed=1,
+                                   good_start=good_start, education=edu)
+                    pop_history = ga_solver.revolution()
+                    ga_solver.plot_evolution(pop_history)
+                    print(crossover, selection)
+                    print(ga_solver.best_makespan, ga_solver.best_individual)
     ga_solver = GA(instance=fsp, population_size=50, crossover_method='PMX', selection_method='Roulette Wheel',
-                   random_seed=1, good_start=True)
+                   random_seed=1, good_start=True, education=True)
     _ = ga_solver.revolution()
     _, job_info = fsp.forward_schedule(ga_solver.best_individual)
     fsp.draw_gant_chart(job_info, method='GA', C_max=ga_solver.best_makespan,
-                        description='PMX_Roulette_Wheel_Good_Start')
+                        description='PMX_Roulette_Wheel_Good_Start_Education')
