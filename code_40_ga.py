@@ -24,7 +24,8 @@ class GA:
     best_x, best_y = ga_solver.get_best_result(records[-1])
     """
 
-    def __init__(self, instance: FSP, population_size=100, crossover_rate=0.8, mutation_rate=0.003, n_generations=100):
+    def __init__(self, instance: FSP, population_size=100, crossover_rate=0.8, mutation_rate=0.003, n_generations=100,
+                 selection_method='championship', crossover_method='PMX', random_seed=None):
         self.fsp = instance
         self.dna_size = instance.n_total_jobs
         self.pop_size = population_size
@@ -32,6 +33,10 @@ class GA:
         self.mutation_rate = mutation_rate
         self.n_generations = n_generations
         self.best_individual = None
+        self.best_makespan = None
+        self.selection_method = selection_method
+        self.crossover_method = crossover_method
+        self.random_seed = random_seed
         self.pic_path = '02_Results/GA/'
         for path in [self.pic_path]:
             if not os.path.exists(path):
@@ -64,25 +69,25 @@ class GA:
             pop.append(tmp)
         return pop
 
-    def select(self, pop, fit, method='championship'):
-        if method == 'championship':
+    def select(self, pop, fit):
+        if self.selection_method == 'Championship':
             new_pop = []
             for _ in range(self.pop_size):
-                i_1 = random.randint(0, self.fsp.n_total_jobs-1)
-                i_2 = random.randint(0, self.fsp.n_total_jobs-1)
+                i_1 = random.randint(0, self.fsp.n_total_jobs - 1)
+                i_2 = random.randint(0, self.fsp.n_total_jobs - 1)
                 selected_ind = pop[i_1] if fit[i_1] < fit[i_2] else pop[i_2]
                 new_pop.append(selected_ind)
-        elif method == 'roulette_wheel':
+        elif self.selection_method == 'Roulette Wheel':
             fit_probability = [max(fit) - x for x in fit]
             new_pop = random.choices(pop, weights=fit_probability, k=self.pop_size)
         else:
-            raise NameError('No {} selection method defined!'.format(method))
+            raise NameError('No {} selection method defined!'.format(self.selection_method))
         return new_pop
 
     def mutation(self, child):
         if random.random() < self.mutation_rate:  # 以MUTATION_RATE的概率进行变异
-            mutate_point_1 = random.randint(0, self.dna_size-1)  # 随机产生一个实数，代表要变异基因的位置
-            mutate_point_2 = random.randint(0, self.dna_size-1)
+            mutate_point_1 = random.randint(0, self.dna_size - 1)  # 随机产生一个实数，代表要变异基因的位置
+            mutate_point_2 = random.randint(0, self.dna_size - 1)
             child[mutate_point_1], child[mutate_point_2] = child[mutate_point_2], child[mutate_point_1]
         return child
 
@@ -91,32 +96,55 @@ class GA:
         for father in pop:  # 遍历种群中的每一个个体，将该个体作为父亲
             child = father  # 孩子先得到父亲的全部基因（这里我把一串二进制串的那些0，1称为基因）
             if random.random() < self.crossover_rate:  # 产生子代时不是必然发生交叉，而是以一定的概率发生交叉
-                mother = pop[random.randint(0, self.pop_size-1)]  # 在种群中选择另一个个体，并将该个体作为母亲
-                cross_points = random.randint(0, self.dna_size-1)  # 随机产生交叉的点
-                child[cross_points:] = mother[cross_points:]  # 孩子得到位于交叉点后的母亲的基因
+                mother = pop[random.randint(0, self.pop_size - 1)]  # 在种群中选择另一个个体，并将该个体作为母亲
+                cross_points = [random.randint(0, self.dna_size - 1), random.randint(0, self.dna_size - 1)]
+                cross_points = [min(cross_points), max(cross_points)]
+                mother_middle_part = mother[cross_points[0]:cross_points[1]]
+                father_middle_part = father[cross_points[0]:cross_points[1]]
+                if self.crossover_method == 'PMX':
+                    child_part_1 = [
+                        x if x not in mother_middle_part else father_middle_part[mother_middle_part.index(x)] for x in
+                        father[:cross_points[0]]]
+                    child_part_3 = [
+                        x if x not in mother_middle_part else father_middle_part[mother_middle_part.index(x)] for x in
+                        father[cross_points[1]:]]
+                    child = child_part_1 + mother_middle_part + child_part_3
+                elif self.crossover_method == 'OX':
+                    mother_reorder = mother[cross_points[1]:] + mother[:cross_points[1]]
+                    for x in father_middle_part:
+                        mother_reorder.remove(x)
+                    tail_len = self.dna_size - cross_points[1]
+                    child = mother_reorder[tail_len:] + father_middle_part + mother_reorder[:tail_len]
+                else:
+                    raise NameError('No {} crossover method defined!'.format(self.crossover_method))
             child = self.mutation(child)  # 每个后代有一定的机率发生变异
             new_pop.append(child)
         return new_pop
 
-    def revolution(self, random_seed=None, time_limit=1e10):
-        random.seed(random_seed)
+    def revolution(self, time_limit=1e10):
+        random.seed(self.random_seed)
         pop_records = []
         # 初始化种群
         pop = self.initial_pop()
+        fit = self.get_fitness(pop)
+        self.best_individual = pop[fit.index(min(fit))].copy()
+        self.best_makespan = min(fit)
         pop_records.append(pop)
         # 演化
         start_time = time.time()
         for _ in range(self.n_generations):
             if time.time() - start_time > time_limit:
                 break
-            # 评估群体中个体的适应度
-            fit = self.get_fitness(pop)
-            self.best_individual = pop[fit.index(min(fit))].copy()
-            print('Makespan:', min(fit), ';\tSolution:', self.best_individual)
             # 选择
             pop = self.select(pop, fit)
             # 交叉和变异
             pop = self.crossover_and_mutation(pop)
+            fit = self.get_fitness(pop)
+            if min(fit) < self.best_makespan:
+                self.best_individual = pop[fit.index(min(fit))].copy()
+                self.best_makespan = min(fit)
+            else:
+                pop[0] = self.best_individual.copy()
             pop_records.append(pop.copy())
         random.seed(None)
         return pop_records
@@ -129,18 +157,30 @@ class GA:
                            pops[generation_range[0]: generation_range[1]]]
         plt.boxplot(fitness_records, labels=range(generation_range[0], generation_range[1]))
         plt.xlabel('Generation')
-        plt.ylabel('Target Function Values')
+        plt.ylabel('Makespans')
+        title = 'GA Revolution with {} Selection Method {} Crossover Method'.format(self.selection_method,
+                                                                                    self.crossover_method)
+        plt.title(title)
         plt.xticks(range(0, len(fitness_records), 5), range(0, len(fitness_records), 5))
-        plt.text(plt.gca().get_xlim()[-1], plt.gca().get_ylim()[0],
-                 'DNA Size: {}\nPopulation Size: {}\nCrossover Rate: {}\nMutation Rate: {}'.format(
-                     self.dna_size, self.pop_size, self.crossover_rate, self.mutation_rate
-                 ), ha='right', va='bottom')
+        plt.text(plt.gca().get_xlim()[-1] * 0.99, plt.gca().get_ylim()[-1] * 0.99,
+'DNA Size: {}\nPopulation Size: {}\nCrossover Rate: {}\nMutation Rate: {}\nRandom Seed: {}\n\nBest Makespan: {}'.format(
+         self.dna_size, self.pop_size, self.crossover_rate, self.mutation_rate, self.random_seed, self.best_makespan
+                 ), ha='right', va='top')
         plt.tight_layout()
-        plt.savefig(self.pic_path+'GA_Revolution.png', dpi=150)
+        title.replace(' ', '_')
+        plt.savefig(self.pic_path + '{}.png'.format(title), dpi=150)
 
 
 if __name__ == '__main__':
     fsp = FSP()
-    ga_solver = GA(instance=fsp, population_size=50)
-    pop_history = ga_solver.revolution(random_seed=1)
-    ga_solver.plot_evolution(pop_history)
+    for crossover in ['OX', 'PMX']:
+        for selection in ['Championship', 'Roulette Wheel']:
+            ga_solver = GA(instance=fsp, population_size=50, crossover_method=crossover, selection_method=selection,
+                           random_seed=1)
+            pop_history = ga_solver.revolution()
+            ga_solver.plot_evolution(pop_history)
+    ga_solver = GA(instance=fsp, population_size=50, crossover_method='PMX', selection_method='Roulette Wheel',
+                   random_seed=1)
+    pop_history = ga_solver.revolution()
+    _, job_info = fsp.forward_schedule(ga_solver.best_individual)
+    fsp.draw_gant_chart(job_info, method='GA', C_max=ga_solver.best_makespan, description='PMX_Roulette_Wheel')

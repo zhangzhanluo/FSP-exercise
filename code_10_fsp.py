@@ -140,7 +140,10 @@ class FSP:
         save_path = '01_Gantt_Chart/{}/'.format(method)
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-        plt.savefig(save_path + title.replace('\n', ' - ') + '.png', dpi=dpi)
+        title = title.replace(' ', '_')
+        title = title.replace('\n', '+')
+        title = title.replace('-', '+')
+        plt.savefig(save_path + title + '.png', dpi=dpi)
         plt.close()
 
 
